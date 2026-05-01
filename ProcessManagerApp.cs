@@ -316,8 +316,17 @@ namespace ProcessesChpDz
         private void RefreshProcessList()
         {
             var previousId = selectedProcessId;
-            var processes = Process.GetProcesses()
-                .Select(ProcessInfo.FromProcess)
+            var processes = new List<ProcessInfo>();
+
+            foreach (var process in Process.GetProcesses())
+            {
+                using (process)
+                {
+                    processes.Add(ProcessInfo.FromProcess(process));
+                }
+            }
+
+            processes = processes
                 .OrderBy(process => process.Name, StringComparer.CurrentCultureIgnoreCase)
                 .ThenBy(process => process.Id)
                 .ToList();
@@ -522,13 +531,25 @@ namespace ProcessesChpDz
 
         private static int CountProcessesByName(string processName)
         {
+            Process[] processes = null;
             try
             {
-                return Process.GetProcessesByName(processName).Length;
+                processes = Process.GetProcessesByName(processName);
+                return processes.Length;
             }
             catch
             {
                 return 0;
+            }
+            finally
+            {
+                if (processes != null)
+                {
+                    foreach (var process in processes)
+                    {
+                        process.Dispose();
+                    }
+                }
             }
         }
 
